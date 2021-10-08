@@ -1,0 +1,9 @@
+org.springframework.boot.env.EnvironmentPostProcessor=indi.shine.web.init.InitEnvironmentPostProcessor
+org.springframework.context.ApplicationListener=\
+  indi.shine.web.init.ApplicationEnvPreparedEventListener,\
+  indi.shine.web.init.ApplicationContentRefreshEventListener
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  indi.shine.web.exception.handler.BizExceptionHandler,\
+  indi.shine.web.init.SwaggerAutoConfig,\
+  indi.shine.web.init.BizResponseBodyAdvice,\
+  indi.shine.web.init.BizWebMvcConfigurer

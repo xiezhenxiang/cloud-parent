@@ -10,19 +10,19 @@
     <groupId>indi.shine</groupId>
     <artifactId>cloud-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <name>kg-cloud-parent</name>
     <description>cloud父项目</description>
     <packaging>pom</packaging>
 
     <properties>
-        <java.version>1.8</java.version>
         <cloud.web.version>1.0.0-SNAPSHOT</cloud.web.version>
+        <java.version>1.8</java.version>
         <lombok.version>1.18.12</lombok.version>
     </properties>
 
     <modules>
-        <module>cloud-demo</module>
+        <module>cloud-common</module>
         <module>cloud-web</module>
+        <module>cloud-demo</module>
     </modules>
 
     <dependencies>
@@ -44,7 +44,27 @@
         </dependencies>
     </dependencyManagement>
 
+    <distributionManagement>
+        <repository>
+            <id>user-release</id>
+            <name>User Project Release</name>
+            <url>http://192.168.4.2:8081/repository/maven-releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>user-release</id>
+            <name>User Project SNAPSHOTS</name>
+            <url>http://192.168.4.2:8081/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <build>
+        <finalName>${project.artifactId}</finalName>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <pluginManagement>
             <plugins>
                 <plugin>

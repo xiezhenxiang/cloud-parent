@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--日志级别以及优先级排序: OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL -->
+<!--status：用于设置log4j2自身内部日志的信息输出级别，默认是OFF-->
+<!--monitorInterval：间隔秒数,自动检测配置文件的变更和重新配置本身-->
+<Configuration status="warn" monitorInterval="600">
+    <properties>
+        <property name="logPath">${ctx:logPath}</property>
+        <property name="pattern">${ctx:logPattern}</property>
+        <property name="appName">${ctx:appName}</property>
+        <property name="logLevel">${ctx:logLevel}</property>
+    </properties>
+
+    <Appenders>
+        <!--控制台输出配置-->
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${pattern}"/>
+        </Console>
+        <!--文件输出配置-->
+        <RollingRandomAccessFile name="file" fileName="${logPath}/${appName}.log" immediateFlush="true"
+                                 filePattern="${logPath}/${appName}-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${pattern}"/>
+            <!--归档策略：根据文件大小压缩拆分日志文件-->
+            <Policies>
+                <SizeBasedTriggeringPolicy size="50mb"/>
+            </Policies>
+            <!--文件保存策略：分组最多保存10个文件，每次滚动时删除超过60天的文件，且保存最近100g或100个文件-->
+            <DefaultRolloverStrategy max="10">
+                <Delete basePath="${logPath}" maxDepth="3">
+                    <IfFileName glob="*.log.gz">
+                        <IfLastModified age="60d">
+                            <IfAny>
+                                <IfAccumulatedFileSize exceeds="100gb"/>
+                                <IfAccumulatedFileCount exceeds="100"/>
+                            </IfAny>
+                        </IfLastModified>
+                    </IfFileName>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingRandomAccessFile>
+    </Appenders>
+
+    <!--只有定义了logger并引入的appender，appender才会生效-->
+    <Loggers>
+        <!--过滤掉一些无用的DEBUG信息-->
+        <!--Logger节点用来单独指定日志的形式，name为包路径-->
+        <logger name="org.springframework" level="info"/>
+        <Root level="${logLevel}">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="file"/>
+        </Root >
+    </Loggers>
+</Configuration>
