@@ -1,4 +1,4 @@
-package indi.shine.web.bean.response;
+package indi.shine.common.bean.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -19,8 +19,8 @@ public class ReturnT<T> implements Serializable  {
     private static final long serialVersionUID = 112L;
     private static final int SUCCESS_CODE = 200;
     private static final String SUCCESS_MSG = "ok";
-    private static final int ERROR_CODE = 500;
-    private static final String ERROR_MSG = "undefined error";
+    private static final int DEFAULT_ERROR_CODE = 500;
+    private static final String DEFAULT_ERROR_MSG = "undefined error";
 
     private int code;
     private String msg;
@@ -50,6 +50,6 @@ public class ReturnT<T> implements Serializable  {
     }
 
     public static <T> ReturnT<T> fail() {
-        return new ReturnT<>(ERROR_CODE, ERROR_MSG);
+        return new ReturnT<>(DEFAULT_ERROR_CODE, DEFAULT_ERROR_MSG);
     }
 }

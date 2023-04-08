@@ -313,7 +313,7 @@ public final class HttpUtil {
         while ((count = in.read(data,0,len)) != -1) {
             outStream.write(data, 0, count);
         }
-        return new String(outStream.toByteArray(), ENCODE);
+        return outStream.toString(ENCODE);
     }
 
     public void setReadTimeout(int timeout) {

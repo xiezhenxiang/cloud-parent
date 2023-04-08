@@ -5,7 +5,7 @@ package indi.shine.web.util;
  * 分布式系统生成唯一ID
  * @author xiezhenxiang 2019/9/9
  */
-public class Snowflake {
+public class SnowflakeUtil {
 
     /** 工作机器ID(0~31) */
     private static long workerId  = 1;

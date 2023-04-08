@@ -1,12 +1,12 @@
 package indi.shine.web.init;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 /**
@@ -25,14 +25,16 @@ public class BizWebMvcConfigurer implements WebMvcConfigurer {
     }
 
     @Override
-    public void addCorsMappings(CorsRegistry registry) {
+    public void addCorsMappings(@Nonnull CorsRegistry registry) {
         if (filterCross) {
             registry.addMapping("/**")
-                    .allowedOrigins("*")
+                    .allowedOriginPatterns("*")
                     .allowedHeaders("*")
                     .allowedMethods("*")
-                    .maxAge(3600) // 预检请求的有效时间
-                    .allowCredentials(true); //是否允许发送Cookie
+                    // 预检请求的有效时间
+                    .maxAge(3600)
+                    //是否允许发送Cookie
+                    .allowCredentials(true);
         }
     }
 }

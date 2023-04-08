@@ -1,4 +1,4 @@
-package indi.shine.web.bean.ex;
+package indi.shine.common.bean.exception;
 
 import javafx.util.Pair;
 

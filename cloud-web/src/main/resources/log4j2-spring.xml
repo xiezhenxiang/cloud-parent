@@ -44,6 +44,7 @@
         <!--过滤掉一些无用的DEBUG信息-->
         <!--Logger节点用来单独指定日志的形式，name为包路径-->
         <logger name="org.springframework" level="info"/>
+        <logger name="org.hibernate.validator" level="warn"/>
         <Root level="${logLevel}">
             <AppenderRef ref="console"/>
             <AppenderRef ref="file"/>

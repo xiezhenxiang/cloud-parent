@@ -1,7 +1,7 @@
 package indi.shine.web.exception.handler;
 
-import indi.shine.web.bean.response.ReturnT;
-import indi.shine.web.exception.BizException;
+import indi.shine.common.bean.exception.BizException;
+import indi.shine.common.bean.response.ReturnT;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
@@ -47,7 +47,7 @@ public class BizExceptionHandler {
                 errorArr.add(error.getObjectName() + error.getDefaultMessage());
             }
         }
-        String errMsg= Strings.join(errorArr.iterator(), ';');
+        String errMsg= String.join( ";", errorArr);
         ReturnT<Object> fail = ReturnT.fail();
         fail.setMsg(errMsg);
         fail.setData(MethodArgumentNotValidException.class);
@@ -64,7 +64,8 @@ public class BizExceptionHandler {
         for (ConstraintViolation<?> constraint : ex.getConstraintViolations()) {
             errorArr.add("字段:" + constraint.getPropertyPath() + ", 非法值:" + constraint.getInvalidValue() + "," + constraint.getMessage());
         }
-        String errMsg= Strings.join(errorArr.iterator(), ';');
+
+        String errMsg= String.join( ";", errorArr);
         ReturnT<Object> fail = ReturnT.fail();
         fail.setMsg(errMsg);
         fail.setData(ConstraintViolationException.class);

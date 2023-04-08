@@ -1,4 +1,4 @@
-package indi.shine.web.exception;
+package indi.shine.common.bean.exception;
 
 public class SystemException extends RuntimeException {
 

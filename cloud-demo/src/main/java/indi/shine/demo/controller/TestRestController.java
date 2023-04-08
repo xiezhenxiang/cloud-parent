@@ -1,12 +1,13 @@
 package indi.shine.demo.controller;
 
-import indi.shine.web.bean.response.ReturnT;
-import indi.shine.web.exception.BizException;
+import indi.shine.common.bean.exception.BizException;
+import indi.shine.common.bean.response.ReturnT;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,13 +23,13 @@ public class TestRestController {
 
     @ApiOperation("rtt")
     @PostMapping(value = "/get")
-    public ReturnT<Object> getTest(String test) {
+    public ReturnT<Object> getTest(@Validated @RequestBody Req req) {
         throw new BizException("nonono1");
     }
 
     @ApiOperation("rtt2")
     @PostMapping(value = "/get2")
     public Object getTest() {
-        return 1;
+        return ReturnT.fail();
     }
 }

@@ -1,6 +1,6 @@
 package indi.shine.web.init;
 
-import indi.shine.web.bean.response.ReturnT;
+import indi.shine.common.bean.response.ReturnT;
 import lombok.SneakyThrows;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;

@@ -4,17 +4,16 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.2.5.RELEASE</version>
-        <relativePath />
+        <version>2.6.2</version>
     </parent>
     <groupId>indi.shine</groupId>
     <artifactId>cloud-parent</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <description>cloud父项目</description>
     <packaging>pom</packaging>
 
     <properties>
-        <cloud.web.version>1.0.0-SNAPSHOT</cloud.web.version>
+        <revision>1.0</revision>
         <java.version>1.8</java.version>
         <lombok.version>1.18.12</lombok.version>
     </properties>
@@ -39,7 +38,12 @@
             <dependency>
                 <groupId>indi.shine</groupId>
                 <artifactId>cloud-web</artifactId>
-                <version>${cloud.web.version}</version>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>indi.shine</groupId>
+                <artifactId>cloud-common</artifactId>
+                <version>${revision}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

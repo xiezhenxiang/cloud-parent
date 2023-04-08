@@ -1,5 +1,6 @@
 package indi.shine.web.util;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
@@ -22,6 +23,8 @@ public class JacksonUtil {
 	}
 	static {
 		OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		// not serial null value
+		OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 		OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
 		OBJECT_MAPPER.setTimeZone(TimeZone.getTimeZone("GMT+8"));
 	}
