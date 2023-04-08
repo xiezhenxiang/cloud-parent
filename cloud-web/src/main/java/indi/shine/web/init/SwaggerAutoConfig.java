@@ -17,6 +17,7 @@ import springfox.documentation.spi.service.contexts.SecurityContext;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.spring.web.plugins.WebFluxRequestHandlerProvider;
 import springfox.documentation.spring.web.plugins.WebMvcRequestHandlerProvider;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
@@ -40,6 +41,7 @@ public class SwaggerAutoConfig {
     private Boolean swaggerAuth;
     @Value("${swagger.base.package}")
     private String basePackage;
+
     @Bean
     public Docket api() {
         ApiInfo apiInfo = new ApiInfoBuilder()
