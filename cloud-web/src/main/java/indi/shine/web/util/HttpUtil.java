@@ -2,7 +2,6 @@ package indi.shine.web.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 
 import javax.activation.MimetypesFileTypeMap;
 import java.io.*;
@@ -11,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,13 +27,15 @@ public final class HttpUtil {
     private final static String BOUNDARY_PREFIX = "--";
     private static final String FILE_CONTENT_TYPE = "multipart/form-data; boundary=" + BOUNDARY;
     private static final String JSON_CONTENT_TYPE = "application/json;charset=utf-8";
+    private static final String FILE_CONTENT_SPLIT = "\r\n";
     private static int readTimeout = 30 * 1000;
+    private static int retryNum = 1;
+    private static String proxyHost = null;
 
-    private static HttpURLConnection openConnection(String url, Map<String, String> head, String proxyHost) throws IOException {
-
+    private static HttpURLConnection openConnection(String url, Map<String, String> head) throws IOException {
         URL realUrl = new URL(url);
         URLConnection conn;
-        if(StringUtil.verify(proxyHost)){
+        if(proxyHost != null){
             String proxyIp = proxyHost.substring(0, proxyHost.lastIndexOf(":"));
             int proxyPort = Integer.parseInt(proxyHost.substring(proxyHost.lastIndexOf(":") + 1));
             InetSocketAddress proxyAddr = new InetSocketAddress(proxyIp, proxyPort);
@@ -52,7 +54,6 @@ public final class HttpUtil {
         HttpURLConnection httpConn = (HttpURLConnection) conn;
         // 设置自动执行重定向
         httpConn.setInstanceFollowRedirects(true);
-
         if (head != null) {
             for (Map.Entry<String, String> entry : head.entrySet()) {
                 httpConn.setRequestProperty(entry.getKey(), entry.getValue());
@@ -61,82 +62,72 @@ public final class HttpUtil {
         return httpConn;
     }
 
-    public static void main(String[] args) {
-        String url = "https://zh.wikipedia.org/wiki/%E7%A1%85%E8%B0%B7%E5%9B%BE%E5%BD%A2%E5%85%AC%E5%8F%B8";
-        String s = sendGet(url, "192.168.4.155:8118");
-        System.out.println(s);
-    }
-
-    public static String sendGet(String url, Map<String, String> head, String proxyHost) {
-
+    public static String sendGet(String url, Map<String, String> head) {
         url = getHttpUrl(url);
         String result = "";
-        try {
-            HttpURLConnection connection = openConnection(url, head, proxyHost);
-            connection.setDoOutput(false);
-            connection.setRequestMethod("GET");
-            result = getResult(connection);
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.info("url: {}", url);
-            logger.error("Http Get请求异常 " + e);
+        int retry = retryNum;
+        while ("".equals(result) && retry > 0) {
+            try {
+                HttpURLConnection connection = openConnection(url, head);
+                connection.setDoOutput(false);
+                connection.setRequestMethod("GET");
+                result = getResult(connection);
+            } catch (Exception e) {
+                if (e instanceof IOException && e.getMessage().contains("Premature EOF")) {
+                    return sendGet(url, head);
+                }
+                e.printStackTrace();
+                logger.info("url: {}", url);
+                logger.error("Http Get请求异常 " + e);
+            }
+            retry --;
         }
         return result;
     }
 
-    public static String sendGet(String url, Map<String, String> head) {
-
-        return sendGet(url, head, null);
-    }
-
     public static String sendGet(String url) {
-
-        return sendGet(url,null,null);
-    }
-
-    public static String sendGet(String url, String proxyHost) {
-
-        return sendGet(url,null, proxyHost);
+        return sendGet(url, null);
     }
 
     private static String sendPost(String url, Map<String, String> head, Map<String, Object> formPara, String jsonPara, String method) {
-
         String result = "";
-        try {
-            HttpURLConnection conn = openConnection(url, head, null);
-            conn.setRequestMethod(method);
-            conn.setUseCaches(false);
-            conn.setDoOutput(true);
-
-            OutputStream out = conn.getOutputStream();;
-            if (formPara != null) {
-                if (!head.containsKey("Content-Type")) {
-                    conn.setRequestProperty("Content-Type", FORM_CONTENT_TYPE);
+        int retry = retryNum;
+        while ("".equals(result) && retry > 0) {
+            try {
+                if (head == null) {
+                    head = new HashMap<>();
                 }
-                String httpEntity = parseParam(formPara);
-                out.write(httpEntity.getBytes());
-            } else if (jsonPara != null) {
                 if (!head.containsKey("Content-Type")) {
-                    conn.setRequestProperty("Content-Type", JSON_CONTENT_TYPE);
+                    head.put("Content-Type", formPara != null ? FORM_CONTENT_TYPE : JSON_CONTENT_TYPE);
                 }
-                out.write(jsonPara.getBytes());
+                HttpURLConnection conn = openConnection(url, head);
+                conn.setRequestMethod(method);
+                conn.setUseCaches(false);
+                conn.setDoOutput(true);
+                OutputStream out = conn.getOutputStream();
+                ;
+                if (formPara != null) {
+                    String httpEntity = parseParam(formPara);
+                    out.write(httpEntity.getBytes());
+                } else if (jsonPara != null) {
+                    out.write(jsonPara.getBytes());
+                }
+                out.flush();
+                out.close();
+                result = getResult(conn);
+            } catch (Exception e) {
+                logger.info("url: {}", url);
+                logger.error("Http {}请求获取源码异常 ", method, e);
             }
-            out.flush();
-            out.close();
-
-            result = getResult(conn);
-        } catch (Exception e) {
-            logger.info("url: {}", url);
-            logger.error("Http {}请求获取源码异常 ", method, e);
+            retry --;
         }
         return result;
     }
 
     private static String getResult(HttpURLConnection conn) throws Exception {
-
         String result = "";
         int responseCode = conn.getResponseCode();
-        if (responseCode == HttpStatus.OK.value()) {
+        if (responseCode == 200) {
             result = inputStreamToString(conn.getInputStream());
         } else{
             logger.info("url: {}", conn.getURL().toString());
@@ -145,12 +136,18 @@ public final class HttpUtil {
         return result;
     }
 
-    public static String sendFile(String url, Map<String, String> head, Map<String, Object> formPara, Map<String, File> filePara) {
+    public static String sendPutFile(String url, Map<String, String> head, Map<String, Object> formPara, Map<String, File> filePara) {
+        return sendFile(url, "PUT", head, formPara, filePara);
+    }
 
+    public static String sendPostFile(String url, Map<String, String> head, Map<String, Object> formPara, Map<String, File> filePara) {
+        return sendFile(url, "POST", head, formPara, filePara);
+    }
+
+    private static String sendFile(String url, String method, Map<String, String> head, Map<String, Object> formPara, Map<String, File> filePara) {
         String result = "";
-        String method = "POST";
         try {
-            HttpURLConnection conn = openConnection(url, head, null);
+            HttpURLConnection conn = openConnection(url, head);
             conn.setRequestMethod(method);
             conn.setUseCaches(false);
             conn.setDoOutput(true);
@@ -160,43 +157,39 @@ public final class HttpUtil {
             OutputStream out = new DataOutputStream(conn.getOutputStream());;
             StringBuilder formData = new StringBuilder();
             if (formPara != null && !formPara.isEmpty()) {
-
                 for (Map.Entry<String, Object> entry : formPara.entrySet()) {
-
-                    formData.append(BOUNDARY_PREFIX).append(BOUNDARY).append(System.lineSeparator())
+                    formData.append(BOUNDARY_PREFIX).append(BOUNDARY).append(FILE_CONTENT_SPLIT)
                             .append("Content-Disposition: form-data; name=\"")
-                            .append(entry.getKey()).append("\"").append(System.lineSeparator())
-                            .append("Content-Type: text/plain; charset=utf-8").append(System.lineSeparator())
+                            .append(entry.getKey()).append("\"").append(FILE_CONTENT_SPLIT)
+                            .append("Content-Type: text/plain; charset=utf-8").append(FILE_CONTENT_SPLIT)
                             .append("Content-Transfer-Encoding: 8bit")
-                            .append(System.lineSeparator()).append(System.lineSeparator())
+                            .append(System.lineSeparator()).append(FILE_CONTENT_SPLIT)
                             .append(entry.getValue())
-                            .append(System.lineSeparator());
+                            .append(FILE_CONTENT_SPLIT);
                 }
 
             }
             if (filePara != null && !filePara.isEmpty()) {
-
                 for (Map.Entry<String, File> entry : filePara.entrySet()) {
-
-                    formData.append(BOUNDARY_PREFIX).append(BOUNDARY).append(System.lineSeparator());
+                    formData.append(BOUNDARY_PREFIX).append(BOUNDARY).append(FILE_CONTENT_SPLIT);
                     formData.append("Content-Disposition: form-data; name=\"")
                             .append(entry.getKey()).append("\"; filename=\"")
                             .append(entry.getValue().getName()).append("\"")
-                            .append(System.lineSeparator())
+                            .append(FILE_CONTENT_SPLIT)
                             .append("Content-Type:").append(getContentType(entry.getValue()))
-                            .append(System.lineSeparator())
+                            .append(FILE_CONTENT_SPLIT)
                             .append("Content-Transfer-Encoding: 8bit")
-                            .append(System.lineSeparator())
-                            .append(System.lineSeparator());
+                            .append(FILE_CONTENT_SPLIT)
+                            .append(FILE_CONTENT_SPLIT);
 
                     out.write(formData.toString().getBytes());
                     InputStream in = new FileInputStream(entry.getValue());
-                    byte[] buffer = new byte[1024 * 1024];
+                    byte[] buffer = new byte[1024];
                     int length = 0;
                     while ((length = in.read(buffer)) != -1) {
                         out.write(buffer, 0, length);
                     }
-                    out.write(System.lineSeparator().getBytes());
+                    out.write(FILE_CONTENT_SPLIT.getBytes());
                 }
             }
 
@@ -212,8 +205,33 @@ public final class HttpUtil {
         return result;
     }
 
-    private static String getContentType(File file)  {
+    public static String sendBinary(String url, String method, Map<String, String> head, File file) {
+        String result = "";
+        try {
+            HttpURLConnection conn = openConnection(url, head);
+            conn.setRequestMethod(method);
+            conn.setUseCaches(false);
+            conn.setDoOutput(true);
+            conn.connect();
 
+            OutputStream out = new DataOutputStream(conn.getOutputStream());;
+            InputStream in = new FileInputStream(file);
+            byte[] buffer = new byte[1024 * 1024];
+            int length;
+            while ((length = in.read(buffer)) != -1) {
+                out.write(buffer, 0, length);
+            }
+            out.flush();
+            out.close();
+            result = getResult(conn);
+        } catch (Exception e) {
+            logger.info("url: {}", url);
+            logger.error("Http {}请求获取源码异常 ", method, e);
+        }
+        return result;
+    }
+
+    private static String getContentType(File file)  {
         Path path = Paths.get(file.getAbsolutePath());
         String contentType = null;
         try {
@@ -229,30 +247,25 @@ public final class HttpUtil {
     }
 
     public static String sendPut(String url, Map<String, String> head, String jsonPara) {
-
         return sendPost(url, head, null, jsonPara, "PUT");
     }
-
     public static String sendPost(String url, Map<String, String> head, Map<String, Object> formPara) {
-
         return sendPost(url, head, formPara, null, "POST");
     }
 
     public static String sendPost(String url, Map<String, String> head, String jsonPara) {
-
         return sendPost(url, head, null, jsonPara, "POST");
     }
 
-    public static InputStream download(String url, String proxyHost) {
-
+    public static InputStream download(String url) {
         url = getHttpUrl(url);
         InputStream inputStream = null;
         try {
-            HttpURLConnection connection = openConnection(url, null, proxyHost);
+            HttpURLConnection connection = openConnection(url, null);
             connection.setDoOutput(false);
             connection.setRequestMethod("GET");
             int responseCode = connection.getResponseCode();
-            if (responseCode == HttpStatus.OK.value()) {
+            if (responseCode == 200) {
                 inputStream = connection.getInputStream();
             }else{
                 logger.info("url: {}", url);
@@ -265,13 +278,7 @@ public final class HttpUtil {
         return inputStream;
     }
 
-
-    public static InputStream download(String url) {
-        return download(url, null);
-    }
-
     private static String parseParam(Map<String, Object> param) {
-
         List<String> list = new ArrayList<>();
         param.forEach((k, v) -> {
             list.add(k + "=" + v);
@@ -288,35 +295,44 @@ public final class HttpUtil {
     }
 
     private static String getHttpUrl(String str) {
-
-        if (StringUtil.isChinese(str)) {
-            try {
-                str = URLEncoder.encode(str, ENCODE);
-            } catch (Exception e) {
-                e.printStackTrace();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < str.length(); i++) {
+            String c = str.charAt(i) + "";
+            if (StringUtil.isChinese(c) || " ".equals(c)) {
+                try {
+                    sb.append(URLEncoder.encode(c, ENCODE));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else {
+                sb.append(c);
             }
         }
-        return str.replaceAll("%3A", ":")
-                  .replaceAll("%2F", "/")
-                  .replaceAll("%3F", "?")
-                  .replaceAll("%3D", "=")
-                  .replaceAll("%26", "&")
-                  .replaceAll(" ", "%20");
+        return sb.toString();
     }
 
     private static String inputStreamToString(InputStream in) throws Exception {
-
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        int len = 4096 * 4;
-        byte[] data = new byte[len];
-        int count;
-        while ((count = in.read(data,0,len)) != -1) {
-            outStream.write(data, 0, count);
+        InputStreamReader inputStreamReader = new InputStreamReader(in, ENCODE);
+        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+        StringBuilder sb = new StringBuilder();
+        int len = 1024 * 1024;
+        char[] buffer = new char[len];
+        int charsRead;
+        while ( (charsRead  = bufferedReader.read(buffer, 0, len)) != -1) {
+            sb.append(buffer, 0, charsRead);
         }
-        return outStream.toString(ENCODE);
+        return sb.toString();
     }
 
-    public void setReadTimeout(int timeout) {
+    public static void setReadTimeout(int timeout) {
         readTimeout = timeout;
+    }
+
+    public static void setProxyHost(String httpProxyHost) {
+        proxyHost = httpProxyHost;
+    }
+
+    public static void setRetryNum(int retryTime) {
+        retryNum = retryTime;
     }
 }

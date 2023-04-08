@@ -23,7 +23,7 @@ public class FileUtil {
 
         byte[] buf = new byte[1024 * 1024];
         String entryName = sourceFile.getName();
-        if (StringUtil.verify(rootDir)) {
+        if (StringUtil.hasText(rootDir)) {
             entryName = rootDir + "/" + entryName;
         }
         try {
