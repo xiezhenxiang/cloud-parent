@@ -10,7 +10,7 @@
     <parent>
         <groupId>indi.shine</groupId>
         <artifactId>cloud-parent</artifactId>
-        <version>p-1.0</version>
+        <version>p-1.0-SNAPSHOT</version>
     </parent>
 
     <properties>
